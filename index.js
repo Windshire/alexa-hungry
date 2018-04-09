@@ -26,7 +26,6 @@ const HELP_REPROMPT = 'What can I help you with?';
 const STOP_MESSAGE = 'Goodbye!';
 
 const FAVORITE_FOOD_PROMPT = "What's your favorite food?"
-const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + FAVORITE_FOOD_PROMPT;
 
 
 //=========================================================================================================================================
@@ -74,16 +73,24 @@ var DECK_LENGTH = flashcardsDictionary.length;
 //=========================================================================================================================================
 
 const handlers = {
+    // Open 'I'm Hungry'
+    'LaunchRequest': function () {
+
+        const MAKE_OR_BUY_MESSAGE = preferenceMsgs[Math.floor(Math.random() * preferenceMsgs.length)] + makeOrBuyMsgs[Math.floor(Math.random() * makeOrBuyMsgs.length)];
+        const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + MAKE_OR_BUY_MESSAGE;
+        this.response.speak(IM_STARVING_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
+        this.emit(':responseReady');
+    },
+
+
+
+
     'HelloIntent': function () {
         this.response.speak("Oh, hey. I didn't see you there.");
         this.emit(':responseReady');
     },
 
-    // Open 'I'm Hungry'
-    'LaunchRequest': function () {
-        this.response.speak(IM_STARVING_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
-        this.emit(':responseReady');
-    },
+
 
     // User gives an answer
     'AnswerIntent': function() {
