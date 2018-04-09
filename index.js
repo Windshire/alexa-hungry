@@ -26,7 +26,6 @@ const HELP_REPROMPT = 'What can I help you with?';
 const STOP_MESSAGE = 'Goodbye!';
 
 const FAVORITE_FOOD_PROMPT = "What's your favorite food?"
-const MAKE_OR_BUY_MESSAGE = "Would you prefer to make your own food, or get it from a restaurant?"
 const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + FAVORITE_FOOD_PROMPT;
 
 
@@ -49,9 +48,24 @@ const data = [
     'The Moon is moving approximately 3.8 cm away from our planet every year.',
 ];
 
+const preferenceMsgs = [
+    "Would you like to ",
+    "Would you prefer to ",
+    "Would you rather ",
+    "Do you want to ",
+];
+
+const makeOrBuyMsgs = [
+    "make your own food, or get it from a restaurant?",
+    "prepare your food, or get it from somewhere?",
+    "cook, or do you want to pay someone else to do it?"
+];
+
 var flashcardsDictionary = [
 
 ];
+
+const PREFERENCE_MESSAGES_LENGTH = preferenceMsgs.length;
 
 var DECK_LENGTH = flashcardsDictionary.length;
 
