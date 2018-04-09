@@ -49,6 +49,8 @@ const makeOrBuyMsgs = [
 const handlers = {
     // Open 'I'm Hungry'
     'LaunchRequest': function () {
+        this.attributes['method'] = "";
+        this.attributes['food'] = "";
 
         const MAKE_OR_BUY_MESSAGE = preferenceMsgs[Math.floor(Math.random() * preferenceMsgs.length)] + makeOrBuyMsgs[Math.floor(Math.random() * makeOrBuyMsgs.length)];
         const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + MAKE_OR_BUY_MESSAGE;
@@ -57,18 +59,50 @@ const handlers = {
     },
 
     'MakeIntent': function () {
-        this.response.speak("You wanna make it yourself, huh?");
+        this.attributes['method'] = "make";
+        this.response.speak("You wanna make it yourself, huh?").listen();
         this.emit(':responseReady');
     },
 
     'BuyIntent': function () {
-        this.response.speak("Big spender over here.");
+        this.attributes['method'] = "buy";
+        this.response.speak("Big spender over here. Delivery or eat there?").listen();
+        this.emit(':responseReady');
+    },
+
+    'DeliveryIntent': function () {
+        this.attributes['method'] = "order";
+        this.response.speak("DELIVERY!").listen();
         this.emit(':responseReady');
     },
 
     'FavoriteFoodIntent': function() {
-        var favoriteFood = this.event.request.intent.slots.foodType.value;
-        this.response.speak("Really? You like " + favoriteFood + "? Well, okay.");
+        var response = "";
+
+        var food = this.event.request.intent.slots.foodType.value;
+        this.attributes['food'] = food;
+
+        if (this.attributes['method'] === "order" && this.attributes['food'] === "pizza") {
+            response = "YOU WANT SOME PIZZA MY GUY? I can order a pizza for you from Domino's if you want.";
+        }
+        else {
+            response = "Really? You like " + food + "? Well, okay.";
+        }
+
+        this.response.speak(response).listen();
+        this.emit(':responseReady');
+    },
+
+    'StatusIntent': function() {
+        var status = "You want";
+
+        if (this.attributes['method'] !== "") {
+            status += " to " + this.attributes['method'];
+        }
+        if (this.attributes['food'] !== "") {
+            status += this.attributes['food'];
+        }
+        this.response.speak(status).listen();
         this.emit(':responseReady');
     },
 
