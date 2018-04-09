@@ -82,7 +82,10 @@ const handlers = {
         this.emit(':responseReady');
     },
 
-
+    'MakeIntent': function () {
+        this.response.speak("You wanna make it yourself, huh?");
+        this.emit(':responseReady');
+    },
 
 
     'HelloIntent': function () {
