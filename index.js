@@ -32,9 +32,34 @@ const makeOrBuyMsgs = [
     "cook, or do you want to pay someone else to do it?"
 ];
 
+const methodResponseMsgs = {
+    "make":"You wanna make it yourself, huh? A real go-getter, that's great! ",
+}
+
+const methodPromptMsgs = {
+    "make":"Do you need a recipe? ",
+}
+
 //=========================================================================================================================================
 //Editing anything below this line might break your skill.
 //=========================================================================================================================================
+
+
+function methodProcess (method, food) {
+    var response = "";
+    var prompt = "";
+
+    if (food === "") {
+        response = methodResponseMsgs[method];
+        prompt = "Do you know what food that you want to " + method + ", or do you want some suggestions? ";
+    }
+    else {
+        response = "You want to " + method + " " + food + "? ";
+        prompt = methodPromptMsgs[method];
+    }
+
+    return [response, prompt];
+}
 
 const handlers = {
     // Open 'I'm Hungry'
@@ -60,26 +85,13 @@ const handlers = {
 
         if (this.attributes['method'] === "") {
             this.attributes['method'] = method;
-        }
-        else if () {
-
-        }
-        else {
-            response += "You have encountered an error. ";
-            prompt += "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
-        }
-
-
-
-
-        response += ;
-        if (this.attributes['food'] === "") {
-            response += "You wanna make it yourself, huh? A real go-getter, that's great! ";
-            prompt += "Do you know what food that you want to make, or do you want some suggestions? ";
+            var result = methodProcess(method, this.attributes['food']);
+            response = result[0];
+            prompt = result[1];
         }
         else {
-            response += "You want to " + method + " " + this.attributes['food'] + "? ";
-
+            response = "You have encountered an error. ";
+            prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
         }
 
         this.response.speak(response+prompt).listen(prompt);
