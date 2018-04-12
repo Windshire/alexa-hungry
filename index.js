@@ -4,17 +4,53 @@
 'use strict';
 const Alexa = require('alexa-sdk');
 
-//Replace with your app ID (OPTIONAL).  You can find this value at the top of your skill's page on http://developer.amazon.com.
-//Make sure to enclose your value in quotes, like this: const APP_ID = 'amzn1.ask.skill.bb4045e6-b3e8-4133-b650-72923c5980f1';
-const APP_ID = undefined;
+const APP_ID = "amzn1.ask.skill.d31ae1f1-5fa0-464d-80c5-3e6331ac9c72";
 const SKILL_NAME = "I'm Hungry";
 
-var suggestions = {
+const suggestions = {
     "make":[
-        "apples",
-        "bananas",
+        "pizza",
+        "tuna fish",
+        "fried eggs",
+        "peanut butter and jelly",
+        "hamburgers",
+        "steak",
+        "pork chops",
+        "bacon lettuce tomato",
+    ],
+    "eat":[
+        "pizza",
+        "tuna fish",
+        "fried eggs",
+        "peanut butter and jelly",
+        "hamburgers",
+        "steak",
+        "pork chops",
+        "bacon lettuce tomato",
+    ],
+    "order":[
+        "pizza",
+        "tuna fish",
+        "fried eggs",
+        "peanut butter and jelly",
+        "hamburgers",
+        "steak",
+        "pork chops",
+        "bacon lettuce tomato",
+    ],
+    "buy":[
+        "pizza",
+        "tuna fish",
+        "fried eggs",
+        "peanut butter and jelly",
+        "hamburgers",
+        "steak",
+        "pork chops",
+        "bacon lettuce tomato",
     ],
 };
+
+var tourney = [];
 
 function startPromptMsgs() {
     return {
@@ -48,16 +84,26 @@ const messages = {
     "startPromptMsgs":startPromptMsgs,
     "processResponseMsgs":{
         "food":processResponseMsgs,
-        "make":"You wanna make it yourself, huh? A real go-getter, that's great! ",
+        "make":"You wanna make it yourself huh? A real go-getter, that's great! ",
         "buy":"Big spender over here. ",
+        "order":"I get it. I like to stay home too. ",
+        "eat":"Night out on the town, wow! ",
     },
     "processPromptMsgs":{
         "make":{
-            "message":"Do you know what food that you want to make, or do you want some suggestions? ",
+            "message":"Do you want some suggestions on what food to make? Otherwise, if you know, just tell me the food that you're interested in. ",
+            "terminate":false,
+        },
+        "order":{
+            "message":"Do you want some suggestions on what food to order? Otherwise, if you know, just tell me the food that you're interested in. ",
             "terminate":false,
         },
         "buy":{
-            "message":"Do you want delivery or do you want to eat there? ",
+            "message":"Do you want to sit down in the restaurant? Or do you want delivery? ",
+            "terminate":false,
+        },
+        "eat":{
+            "message":"Do you want some suggestions on what food to eat? Otherwise, if you know, just tell me the food that you're interested in. ",
             "terminate":false,
         }
     },
@@ -74,7 +120,11 @@ const messages = {
         "buy":{
             "message":"Do you want to know more about restaurants in the area? Just ask Alexa where the nearest restaurant is to you. ",
             "terminate":true,
-        }
+        },
+        "eat":{
+            "message":"Do you want to know more about restaurants in the area? Just ask Alexa where the nearest restaurant is to you. ",
+            "terminate":true,
+        },
     },
 };
 
@@ -108,13 +158,33 @@ function getNextQuestion(method,index) {
     var question = "";
     question += messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)];
     question += method + " ";
-    question += suggestions[method][index];
+    question += tourney[index];
     question += " or ";
     question += messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)];
     question += method + " ";
-    question += suggestions[method][index + 1];
+    question += tourney[index + 1];
     question += "?";
     return question;
+}
+
+function removeLoser(index, food) {
+    if (tourney[index] === food) {
+        tourney.splice(index+1,1);
+    }
+    else if (tourney[index + 1] === food) {
+        tourney.splice(index,1);
+    }
+    else {
+        return index;
+    }
+
+    index++;
+
+    if (index === tourney.length) {
+        index = 0;
+    }
+
+    return index;
 }
 
 const handlers = {
@@ -192,15 +262,13 @@ const handlers = {
             var prompt = "";
             var terminate = false;
 
-            if (this.attributes['method'] === "" || this.attributes['method'] === undefined) {
+            if (this.attributes['method'] === "" || this.attributes['method'] === undefined || this.attributes['method'] === method) {
                 this.attributes['method'] = method;
                 var result = process(this.attributes['method'], this.attributes['food']);
                 response = result[0];
                 prompt = result[1].message;
                 terminate = result[1].terminate;
-            }
-            else if (this.attributes['method'] === method) {
-                response = "I already know that.";
+                this.attributes['method'] = "";
             }
             else {
                 response = "You have encountered an error. ";
@@ -261,13 +329,52 @@ const handlers = {
         }
     },
 
+    'SitIntent': function() {
+            var method = "eat";
+
+            if (this.attributes['state'] === "process") {
+
+                var response = "";
+                var prompt = "";
+                var terminate = false;
+
+                if (this.attributes['method'] === "" || this.attributes['method'] === undefined) {
+                    this.attributes['method'] = method;
+                    var result = process(this.attributes['method'], this.attributes['food']);
+                    response = result[0];
+                    prompt = result[1].message;
+                    terminate = result[1].terminate;
+                }
+                else if (this.attributes['method'] === method) {
+                    response = "I already know that.";
+                }
+                else {
+                    response = "You have encountered an error. ";
+                    prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
+                    terminate = true;
+                }
+
+                this.attributes['response'] = response;
+                this.attributes['prompt'] = prompt;
+
+                if (terminate) {
+                    this.response.speak(this.attributes['response']+this.attributes['prompt']);
+                }
+                else {
+                    this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
+                }
+
+                this.emit(':responseReady');
+            }
+    },
+
     'FavoriteFoodIntent': function() {
 /*
         if (this.attributes['method'] === "order" && this.attributes['food'] === "pizza") {
             response = "YOU WANT SOME PIZZA MY GUY? I can order a pizza for you from Domino's if you want.";
         }
 */
-        var food = this.event.request.intent.slots.foodType.value;;
+        var food = this.event.request.intent.slots.foodType.value;
 
         if (this.attributes['state'] === "process") {
 
@@ -303,10 +410,27 @@ const handlers = {
 
             this.emit(':responseReady');
         }
+        else if (this.attributes['state'] === "quiz") {
 
-
-
-
+            var method = this.attributes['method'];
+            this.attributes['index'] = removeLoser(this.attributes['index'], food);
+            if (tourney.length > 1) {
+                var question = getNextQuestion(method,this.attributes['index']);
+                this.response.speak(question).listen(question);
+                this.emit(':responseReady');
+            }
+            else {
+                this.attributes['food'] = tourney[0];
+                var result = process(this.attributes['method'], this.attributes['food']);
+                response = "The winner is " + tourney[0] + " ";
+                prompt = result[1].message;
+                terminate = result[1].terminate;
+                this.attributes['response'] = response;
+                this.attributes['prompt'] = prompt;
+                this.response.speak(this.attributes['response']+this.attributes['prompt']);
+                this.emit(':responseReady');
+            }
+        }
 
     },
 
@@ -314,8 +438,12 @@ const handlers = {
             if (this.attributes['state'] === "process") {
                 this.attributes['state'] = "quiz";
                 this.attributes['index'] = 0;
+
+                var method = this.attributes['method'];
+                tourney = JSON.parse(JSON.stringify(suggestions[method]));
                 var question = getNextQuestion(this.attributes['method'],this.attributes['index']);
-                this.response.speak(question).listen(question);
+                var begin = "I will give you eight random options, and you can pick one winner at a time, tournament-style! ";
+                this.response.speak(begin + question).listen(question);
                 this.emit(':responseReady');
             }
     },
@@ -340,28 +468,6 @@ const handlers = {
         this.emit(':responseReady');
     },
 
-/*
-    'GetNewFactIntent': function () {
-        const factArr = data;
-        const factIndex = Math.floor(Math.random() * factArr.length);
-        const randomFact = factArr[factIndex];
-        const speechOutput = GET_FACT_MESSAGE + randomFact;
-
-        this.response.cardRenderer(SKILL_NAME, randomFact);
-        this.response.speak(speechOutput);
-        this.emit(':responseReady');
-    },
-
-    // Test my {language} knowledge
-    'AskQuestion': function() {
-        //var currentFlashcardIndex = this.attributes.flashcards.languages[currentLanguage].currentFlashcardIndex;
-        //var currentState = flashcardsDictionary[currentFlashcardIndex].question;
-
-        this.response.listen('What is the capital of ' + currentState);
-        this.emit(':responseReady');
-    },
-
-*/
     'AMAZON.HelpIntent': function () {
         this.response.speak("Goodbye.");
         this.emit(':responseReady');
