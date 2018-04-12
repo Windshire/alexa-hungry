@@ -1,32 +1,22 @@
 /* eslint-disable  func-names */
 /* eslint quote-props: ["error", "consistent"]*/
-/**
- * This sample demonstrates a simple skill built with the Amazon Alexa Skills
- * nodejs skill development kit.
- * This sample supports multiple lauguages. (en-US, en-GB, de-DE).
- * The Intent Schema, Custom Slots and Sample Utterances for this skill, as well
- * as testing instructions are located at https://github.com/alexa/skill-sample-nodejs-fact
- **/
 
 'use strict';
 const Alexa = require('alexa-sdk');
 
-//=========================================================================================================================================
-//TODO: The items below this comment need your attention.
-//=========================================================================================================================================
-
 //Replace with your app ID (OPTIONAL).  You can find this value at the top of your skill's page on http://developer.amazon.com.
 //Make sure to enclose your value in quotes, like this: const APP_ID = 'amzn1.ask.skill.bb4045e6-b3e8-4133-b650-72923c5980f1';
 const APP_ID = undefined;
-
 const SKILL_NAME = "I'm Hungry";
-const GET_FACT_MESSAGE = "Here's your fact: ";
-const HELP_MESSAGE = "You can say tell me a space fact, or, you can say exit... What can I help you with?";
-const HELP_REPROMPT = "What can I help you with?";
 
 const STOP_MESSAGE = "Goodbye!";
 
 const FAVORITE_FOOD_PROMPT = "What's your favorite food?"
+
+//SESSION ATTRIBUTES
+//method
+//food
+
 
 const preferenceMsgs = [
     "Would you like to ",
@@ -49,24 +39,57 @@ const makeOrBuyMsgs = [
 const handlers = {
     // Open 'I'm Hungry'
     'LaunchRequest': function () {
-        this.attributes['method'] = "";
-        this.attributes['food'] = "";
+        this.attributes['prompt'] = "";
+        this.attributes['state'] = ""; //assess,
+
+        this.attributes['method'] = ""; //(make, buy, order) how they said that they want to get it.
+        this.attributes['food'] = ""; //({foodItem}) what they said that they want to get.
 
         const MAKE_OR_BUY_MESSAGE = preferenceMsgs[Math.floor(Math.random() * preferenceMsgs.length)] + makeOrBuyMsgs[Math.floor(Math.random() * makeOrBuyMsgs.length)];
         const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + MAKE_OR_BUY_MESSAGE;
-        this.response.speak(MAKE_OR_BUY_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
+        this.response.speak(IM_STARVING_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
         this.emit(':responseReady');
     },
 
-    'MakeIntent': function () {
-        this.attributes['method'] = "make";
-        this.response.speak("You wanna make it yourself, huh?").listen();
+    //***METHOD HANDLERS***
+    'MakeIntent': function () { //set method to 'make'
+        var method = "make";
+
+        var response = "";
+        var prompt = "";
+
+        if (this.attributes['method'] === "") {
+            this.attributes['method'] = method;
+        }
+        else if () {
+
+        }
+        else {
+            response += "You have encountered an error. ";
+            prompt += "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
+        }
+
+
+
+
+        response += ;
+        if (this.attributes['food'] === "") {
+            response += "You wanna make it yourself, huh? A real go-getter, that's great! ";
+            prompt += "Do you know what food that you want to make, or do you want some suggestions? ";
+        }
+        else {
+            response += "You want to " + method + " " + this.attributes['food'] + "? ";
+
+        }
+
+        this.response.speak(response+prompt).listen(prompt);
         this.emit(':responseReady');
     },
 
     'BuyIntent': function () {
         this.attributes['method'] = "buy";
-        this.response.speak("Big spender over here. Delivery or eat there?").listen();
+        if
+        this.response.speak("Big spender over here. Do you want delivery or do you want to eat there?").listen();
         this.emit(':responseReady');
     },
 
@@ -94,7 +117,14 @@ const handlers = {
     },
 
     'StatusIntent': function() {
-        var status = "You want";
+        var status = "";
+
+        if (this.attributes['method'] === "" && this.attributes['food'] === "") {
+            status += "I haven't learned anything about what you want, yet.";
+        }
+        else {
+            status += "You want";
+        }
 
         if (this.attributes['method'] !== "") {
             status += " to " + this.attributes['method'];
