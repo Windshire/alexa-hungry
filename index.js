@@ -9,9 +9,27 @@ const Alexa = require('alexa-sdk');
 const APP_ID = undefined;
 const SKILL_NAME = "I'm Hungry";
 
-const STOP_MESSAGE = "Goodbye!";
+var suggestions = {
+    "make":[
+        "apples",
+        "bananas",
+    ],
+};
 
-const FAVORITE_FOOD_PROMPT = "What's your favorite food?"
+function startPromptMsgs() {
+    return {
+        "message":messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)] + messages.makeOrBuyMsgs[Math.floor(Math.random() * messages.makeOrBuyMsgs.length)],
+        "terminate":false,
+    }
+}
+
+function finalResponseMsgs(method, food) {
+    return "You want to " + method + " " + food + "? Sounds like a good idea! ";
+}
+
+function processResponseMsgs(food) {
+    return "Feeling like some " + food + ", huh? Alright. ";
+}
 
 const messages = {
     "preferenceMsgs":[
@@ -22,98 +40,284 @@ const messages = {
         "Are you thinking you'll ",
     ],
     "makeOrBuyMsgs":[
-        "make your own food, or get it from a restaurant?",
-        "prepare your food, or get it from somewhere?",
-        "cook, or do you want to pay someone else to do it?"
+        "make your own food, or get it from a restaurant? ",
+        "prepare your food, or get it from somewhere? ",
+        "cook, or do you want to pay someone else to do it? "
     ],
-    "methodResponseMsgs":{
+    "startResponseMsgs":"I'm sorry to hear that. Maybe I can help! ",
+    "startPromptMsgs":startPromptMsgs,
+    "processResponseMsgs":{
+        "food":processResponseMsgs,
         "make":"You wanna make it yourself, huh? A real go-getter, that's great! ",
+        "buy":"Big spender over here. ",
     },
-    "methodPromptMsgs":{
-        "make":"Do you need a recipe? ",
-    }
-}
+    "processPromptMsgs":{
+        "make":{
+            "message":"Do you know what food that you want to make, or do you want some suggestions? ",
+            "terminate":false,
+        },
+        "buy":{
+            "message":"Do you want delivery or do you want to eat there? ",
+            "terminate":false,
+        }
+    },
+    "finalResponseMsgs":finalResponseMsgs,
+    "finalPromptMsgs":{
+        "make":{
+            "message":"Do you need a recipe? If so, just say Alexa and then ask me for one. ",
+            "terminate":true,
+        },
+        "order":{
+            "message":"Do you want to order through Alexa?  If so, just say Alexa, order from Amazon Restaurants. ",
+            "terminate":true,
+        },
+        "buy":{
+            "message":"Do you want to know more about restaurants in the area? Just ask Alexa where the nearest restaurant is to you. ",
+            "terminate":true,
+        }
+    },
+};
 
-function methodProcess (method, food) {
+function process (method, food) {
     var response = "";
     var prompt = "";
 
-    if (food === "") {
-        response = messages.methodResponseMsgs[method];
-        prompt = "Do you know what food that you want to " + method + ", or do you want some suggestions? ";
+    if (food === "" && method === "") { //food and method both unknown
+        response = messages.startResponseMsgs;
+        prompt = messages.startPromptMsgs();
     }
-    else {
-        response = "You want to " + method + " " + food + "? ";
-        prompt = messages.methodPromptMsgs[method];
+    else if (food === "" && method !== "") { //food unknown, method known
+        response = messages.processResponseMsgs[method];
+        prompt = messages.processPromptMsgs[method];
     }
-
+    else if (food !== "" && method !== "") { //food and method both known
+        response = messages.finalResponseMsgs(method, food);
+        prompt = messages.finalPromptMsgs[method]; //prompt includes command to terminate
+    }
+    else if (food !== "" && method === "") { //food known, method unknown
+        response = messages.processResponseMsgs["food"](food);
+        prompt = messages.startPromptMsgs();
+    }
+    else { //some impossible/strange error
+        prompt = "How did you get here? ";
+    }
     return [response, prompt];
+}
+
+function getNextQuestion(method,index) {
+    var question = "";
+    question += messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)];
+    question += method + " ";
+    question += suggestions[method][index];
+    question += " or ";
+    question += messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)];
+    question += method + " ";
+    question += suggestions[method][index + 1];
+    question += "?";
+    return question;
 }
 
 const handlers = {
     // Open 'I'm Hungry'
     'LaunchRequest': function () {
-        this.attributes['prompt'] = "";
-        this.attributes['state'] = ""; //assess,
+        this.attributes['response'] = ""; //string of last set response
+        this.attributes['prompt'] = ""; //string of last set prompt
+        this.attributes['state'] = ""; //process
 
         this.attributes['method'] = ""; //(make, buy, order) how they said that they want to get it.
         this.attributes['food'] = ""; //({foodItem}) what they said that they want to get.
 
-        const MAKE_OR_BUY_MESSAGE = messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)] + messages.makeOrBuyMsgs[Math.floor(Math.random() * messages.makeOrBuyMsgs.length)];
-        const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + MAKE_OR_BUY_MESSAGE;
-        this.response.speak(IM_STARVING_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
+        this.attributes['state'] = "process";
+
+        var result, response, prompt, terminate;
+
+        result = process(this.attributes['method'], this.attributes['food']);
+        response = result[0];
+        prompt = result[1].message;
+        terminate = result[1].terminate;
+
+        this.attributes['response'] = response;
+        this.attributes['prompt'] = prompt;
+
+        this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
         this.emit(':responseReady');
     },
 
-    //***METHOD HANDLERS***
+    //***PROCESSING STATE HANDLERS***
     'MakeIntent': function () { //set method to 'make'
         var method = "make";
 
-        var response = "";
-        var prompt = "";
+        if (this.attributes['state'] === "process") {
 
-        if (this.attributes['method'] === "") {
-            this.attributes['method'] = method;
-            var result = methodProcess(method, this.attributes['food']);
-            response = result[0];
-            prompt = result[1];
-        }
-        else {
-            response = "You have encountered an error. ";
-            prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
-        }
+            var response = "";
+            var prompt = "";
+            var terminate = false;
 
-        this.response.speak(response+prompt).listen(prompt);
-        this.emit(':responseReady');
+            if (this.attributes['method'] === "" || this.attributes['method'] === undefined) {
+                this.attributes['method'] = method;
+                var result = process(this.attributes['method'], this.attributes['food']);
+                response = result[0];
+                prompt = result[1].message;
+                terminate = result[1].terminate;
+            }
+            else if (this.attributes['method'] === method) {
+                response = "I already know that.";
+            }
+            else {
+                response = "You have encountered an error. ";
+                prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
+                terminate = true;
+            }
+
+            this.attributes['response'] = response;
+            this.attributes['prompt'] = prompt;
+
+            if (terminate) {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']);
+            }
+            else {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
+            }
+
+            this.emit(':responseReady');
+        }
     },
 
-    'BuyIntent': function () {
-        this.attributes['method'] = "buy";
-        this.response.speak("Big spender over here. Do you want delivery or do you want to eat there?").listen();
-        this.emit(':responseReady');
+    'BuyIntent': function () { //set method to 'buy'
+        var method = "buy";
+
+        if (this.attributes['state'] === "process") {
+
+            var response = "";
+            var prompt = "";
+            var terminate = false;
+
+            if (this.attributes['method'] === "" || this.attributes['method'] === undefined) {
+                this.attributes['method'] = method;
+                var result = process(this.attributes['method'], this.attributes['food']);
+                response = result[0];
+                prompt = result[1].message;
+                terminate = result[1].terminate;
+            }
+            else if (this.attributes['method'] === method) {
+                response = "I already know that.";
+            }
+            else {
+                response = "You have encountered an error. ";
+                prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
+                terminate = true;
+            }
+
+            this.attributes['response'] = response;
+            this.attributes['prompt'] = prompt;
+
+            if (terminate) {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']);
+            }
+            else {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
+            }
+
+            this.emit(':responseReady');
+        }
     },
 
-    'DeliveryIntent': function () {
-        this.attributes['method'] = "order";
-        this.response.speak("DELIVERY!").listen();
-        this.emit(':responseReady');
+    'DeliveryIntent': function () { //set method to 'order'
+        var method = "order";
+
+        if (this.attributes['state'] === "process") {
+
+            var response = "";
+            var prompt = "";
+            var terminate = false;
+
+            if (this.attributes['method'] === "" || this.attributes['method'] === undefined) {
+                this.attributes['method'] = method;
+                var result = process(this.attributes['method'], this.attributes['food']);
+                response = result[0];
+                prompt = result[1].message;
+                terminate = result[1].terminate;
+            }
+            else if (this.attributes['method'] === method) {
+                response = "I already know that.";
+            }
+            else {
+                response = "You have encountered an error. ";
+                prompt = "You previously already said that you wanted to " + this.attributes['method'] + " your food. Are you trying to confuse me? ";
+                terminate = true;
+            }
+
+            this.attributes['response'] = response;
+            this.attributes['prompt'] = prompt;
+
+            if (terminate) {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']);
+            }
+            else {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
+            }
+
+            this.emit(':responseReady');
+        }
     },
 
     'FavoriteFoodIntent': function() {
-        var response = "";
-
-        var food = this.event.request.intent.slots.foodType.value;
-        this.attributes['food'] = food;
-
+/*
         if (this.attributes['method'] === "order" && this.attributes['food'] === "pizza") {
             response = "YOU WANT SOME PIZZA MY GUY? I can order a pizza for you from Domino's if you want.";
         }
-        else {
-            response = "Really? You like " + food + "? Well, okay.";
+*/
+        var food = this.event.request.intent.slots.foodType.value;;
+
+        if (this.attributes['state'] === "process") {
+
+            var response = "";
+            var prompt = "";
+            var terminate = false;
+
+            if (this.attributes['food'] === "" || this.attributes['food'] === undefined) {
+                this.attributes['food'] = food;
+                var result = process(this.attributes['method'], this.attributes['food']);
+                response = result[0];
+                prompt = result[1].message;
+                terminate = result[1].terminate;
+            }
+            else if (this.attributes['food'] === food) {
+                response = "I already know that.";
+            }
+            else {
+                response = "You have encountered an error. ";
+                prompt = "You previously already said that you wanted to eat " + this.attributes['food'] + ". Are you trying to confuse me? ";
+                terminate = true;
+            }
+
+            this.attributes['response'] = response;
+            this.attributes['prompt'] = prompt;
+
+            if (terminate) {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']);
+            }
+            else {
+                this.response.speak(this.attributes['response']+this.attributes['prompt']).listen(this.attributes['prompt']);
+            }
+
+            this.emit(':responseReady');
         }
 
-        this.response.speak(response).listen();
-        this.emit(':responseReady');
+
+
+
+
+    },
+
+    'StartQuizIntent': function() {
+            if (this.attributes['state'] === "process") {
+                this.attributes['state'] = "quiz";
+                this.attributes['index'] = 0;
+                var question = getNextQuestion(this.attributes['method'],this.attributes['index']);
+                this.response.speak(question).listen(question);
+                this.emit(':responseReady');
+            }
     },
 
     'StatusIntent': function() {
@@ -157,24 +361,21 @@ const handlers = {
         this.emit(':responseReady');
     },
 
-
+*/
     'AMAZON.HelpIntent': function () {
-        const speechOutput = HELP_MESSAGE;
-        const reprompt = HELP_REPROMPT;
-
-        this.response.speak(speechOutput).listen(reprompt);
+        this.response.speak("Goodbye.");
         this.emit(':responseReady');
     },
-*/
+
     // Cancel
     'AMAZON.CancelIntent': function () {
-        this.response.speak(STOP_MESSAGE);
+        this.response.speak("Goodbye.");
         this.emit(':responseReady');
     },
 
     // Stop
     'AMAZON.StopIntent': function () {
-        this.response.speak(STOP_MESSAGE);
+        this.response.speak("Goodbye.");
         this.emit(':responseReady');
     },
 
