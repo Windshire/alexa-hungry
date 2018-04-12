@@ -100,7 +100,6 @@ const handlers = {
 
     'BuyIntent': function () {
         this.attributes['method'] = "buy";
-        if
         this.response.speak("Big spender over here. Do you want delivery or do you want to eat there?").listen();
         this.emit(':responseReady');
     },
