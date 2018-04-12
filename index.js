@@ -13,49 +13,38 @@ const STOP_MESSAGE = "Goodbye!";
 
 const FAVORITE_FOOD_PROMPT = "What's your favorite food?"
 
-//SESSION ATTRIBUTES
-//method
-//food
-
-
-const preferenceMsgs = [
-    "Would you like to ",
-    "Would you prefer to ",
-    "Would you rather ",
-    "Do you want to ",
-    "Are you thinking you'll ",
-];
-
-const makeOrBuyMsgs = [
-    "make your own food, or get it from a restaurant?",
-    "prepare your food, or get it from somewhere?",
-    "cook, or do you want to pay someone else to do it?"
-];
-
-const methodResponseMsgs = {
-    "make":"You wanna make it yourself, huh? A real go-getter, that's great! ",
+const messages = {
+    "preferenceMsgs":[
+        "Would you like to ",
+        "Would you prefer to ",
+        "Would you rather ",
+        "Do you want to ",
+        "Are you thinking you'll ",
+    ],
+    "makeOrBuyMsgs":[
+        "make your own food, or get it from a restaurant?",
+        "prepare your food, or get it from somewhere?",
+        "cook, or do you want to pay someone else to do it?"
+    ],
+    "methodResponseMsgs":{
+        "make":"You wanna make it yourself, huh? A real go-getter, that's great! ",
+    },
+    "methodPromptMsgs":{
+        "make":"Do you need a recipe? ",
+    }
 }
-
-const methodPromptMsgs = {
-    "make":"Do you need a recipe? ",
-}
-
-//=========================================================================================================================================
-//Editing anything below this line might break your skill.
-//=========================================================================================================================================
-
 
 function methodProcess (method, food) {
     var response = "";
     var prompt = "";
 
     if (food === "") {
-        response = methodResponseMsgs[method];
+        response = messages.methodResponseMsgs[method];
         prompt = "Do you know what food that you want to " + method + ", or do you want some suggestions? ";
     }
     else {
         response = "You want to " + method + " " + food + "? ";
-        prompt = methodPromptMsgs[method];
+        prompt = messages.methodPromptMsgs[method];
     }
 
     return [response, prompt];
@@ -70,7 +59,7 @@ const handlers = {
         this.attributes['method'] = ""; //(make, buy, order) how they said that they want to get it.
         this.attributes['food'] = ""; //({foodItem}) what they said that they want to get.
 
-        const MAKE_OR_BUY_MESSAGE = preferenceMsgs[Math.floor(Math.random() * preferenceMsgs.length)] + makeOrBuyMsgs[Math.floor(Math.random() * makeOrBuyMsgs.length)];
+        const MAKE_OR_BUY_MESSAGE = messages.preferenceMsgs[Math.floor(Math.random() * messages.preferenceMsgs.length)] + messages.makeOrBuyMsgs[Math.floor(Math.random() * messages.makeOrBuyMsgs.length)];
         const IM_STARVING_MESSAGE = "I'm sorry to hear that. Maybe I can help! " + MAKE_OR_BUY_MESSAGE;
         this.response.speak(IM_STARVING_MESSAGE).listen(MAKE_OR_BUY_MESSAGE);
         this.emit(':responseReady');
